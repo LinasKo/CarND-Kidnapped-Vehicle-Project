@@ -6,3 +6,7 @@ solution_data
 src/particle_filter_sol.cpp
 src/solutions
 # particle_filter.cpp
+
+# project solution
+term2_sim_linux
+.vscode

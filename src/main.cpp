@@ -1,10 +1,14 @@
 #include <uWS/uWS.h>
+
+#include <array>
 #include <iostream>
+#include <cmath>
+
 #include "json.hpp"
-#include <math.h>
 #include "particle_filter.h"
 
 using namespace std;
+
 
 // for convenience
 using json = nlohmann::json;
@@ -32,8 +36,8 @@ int main() {
   double delta_t = 0.1; // Time elapsed between measurements [sec]
   double sensor_range = 50; // Sensor range [m]
 
-  double sigma_pos [3] = {0.3, 0.3, 0.01}; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
-  double sigma_landmark [2] = {0.3, 0.3}; // Landmark measurement uncertainty [x [m], y [m]]
+  std::array<double, 3> sigma_pos = {0.3, 0.3, 0.01}; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
+  std::array<double, 2> sigma_landmark = {0.3, 0.3}; // Landmark measurement uncertainty [x [m], y [m]]
 
   // Read map data
   Map map;
@@ -94,7 +98,7 @@ int main() {
           std::istream_iterator<float>(),
           std::back_inserter(y_sense));
 
-          for (int i = 0; i < x_sense.size(); i++) {
+          for (unsigned int i = 0; i < x_sense.size(); i++) {
             LandmarkObs obs;
             obs.x = x_sense[i];
             obs.y = y_sense[i];
@@ -106,7 +110,7 @@ int main() {
           pf.resample();
 
           // Calculate and output the average weighted error of the particle filter over all time steps so far.
-          vector<Particle> particles = pf.particles;
+          vector<Particle> particles = pf.m_particles;
           int num_particles = particles.size();
           double highest_weight = -1.0;
           Particle best_particle;
