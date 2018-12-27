@@ -11,7 +11,7 @@ In this project you will implement a 2 dimensional particle filter in C++. Your 
 
 ## My Goals
 While it would be fairly easy to implement Particle Filters just to make it run and pass, I aim to invest a bit more, to achieve the following:
-* Finally make a portfolio entry that showcases my C++ skills. While I have many projects in Python, my [Portfolio Website](https://linasko.github.io/portfolio/) is still missing one in C++.
+* Add another portfolio entry that showcases my C++ skills. While I have many projects in Python, my [Portfolio Website](https://linasko.github.io/portfolio/) so far only has one project made with C++.
 * Practice using the standard C++ algorithms library. In the past I have worked with functional programming in Python and Haskell, but do not have provable experience of it in C++. More importantly, I currently have doubts on how useful / readable it is and need to get my hands dirty to decide.
 * (Optionally) recode my implementation in Eigen. I absolutely love vectorization in Python, but do not have much experience of it in C++.
 
@@ -23,7 +23,7 @@ The top level controller of the particle filter steps was provided in `src/main.
 ## Shortcomings
 In light of my goals, here are the obvious shortcomings that I see in my implementation:
 * **Lack of error handling**. To keep the code concise I skipped on a fair bit of error handling. Normally, I'd have more asserts or make sure everything's airtight with unit tests.
-* **Nearest-Neighbour search not optimized** The code can be made faster by using sensor range provided to us specifically to search for landmark-observation associations in a bounded window. However, this sacrifices code clarity, as well as not being the best solution here. An even better approach would be to also use K-D trees to store the landmarks, speeding the seach from roughly O(n<sup>2</sup>) to O(log(n)), especially when the map never changes.
+* **Nearest-Neighbour search not optimized** The code can be made faster by using sensor range provided to us specifically to search for landmark-observation associations in a bounded window. However, this sacrifices code clarity, as well as not being the best solution here. An even better approach would be to also use K-D trees to store the landmarks, speeding the search from roughly O(n<sup>2</sup>) to O(log(n)), especially when the map never changes.
 
 
 ## Success Criteria
