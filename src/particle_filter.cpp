@@ -173,9 +173,9 @@ void ParticleFilter::resample()
 	}
 }
 
-string ParticleFilter::getAssociations(Particle best)
+string ParticleFilter::getAssociations(long index)
 {
-	vector<int> v = best.associations;
+	vector<int> v = m_stlParticles[index].associations;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
     string s = ss.str();
@@ -183,9 +183,9 @@ string ParticleFilter::getAssociations(Particle best)
     return s;
 }
 
-string ParticleFilter::getSenseX(Particle best)
+string ParticleFilter::getSenseX(long index)
 {
-	vector<double> v = best.sense_x;
+	vector<double> v = m_stlParticles[index].sense_x;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
     string s = ss.str();
@@ -193,9 +193,9 @@ string ParticleFilter::getSenseX(Particle best)
     return s;
 }
 
-string ParticleFilter::getSenseY(Particle best)
+string ParticleFilter::getSenseY(long index)
 {
-	vector<double> v = best.sense_y;
+	vector<double> v = m_stlParticles[index].sense_y;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
     string s = ss.str();
@@ -219,7 +219,6 @@ pair<double, double> ParticleFilter::vehicleToMapCoord(double x_part, double y_p
 
 double ParticleFilter::multivariateGaussian(double x, double y, double mean_x, double mean_y, double std_dev_x, double std_dev_y)
 {
-
 	double norm = 1.0 / (2 * M_PI * std_dev_x * std_dev_y);
 	double exponent = pow(x - mean_x, 2) / (2 * pow(std_dev_x, 2)) +
 					  pow(y - mean_y, 2) / (2 * pow(std_dev_y, 2));

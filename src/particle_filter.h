@@ -76,9 +76,9 @@ class ParticleFilter
 		 */
 		void resample();
 		
-		std::string getAssociations(Particle best);
-		std::string getSenseX(Particle best);
-		std::string getSenseY(Particle best);
+		std::string getAssociations(long index);
+		std::string getSenseX(long index);
+		std::string getSenseY(long index);
 
 		/**
 		* initialized Returns whether particle filter is initialized yet or not.
@@ -91,7 +91,6 @@ class ParticleFilter
 		// Setting dynamic size even if number of particles are known, as the number is large and Eigen
 		// recommends using Dynamic sizes for sizes > 4.
 		Eigen::MatrixX4d m_particles;
-		std::array<Eigen::MatrixX3d, PARTICLE_COUNT> m_associations;
 		
 		// Temporary, to not break the usual functions
 		std::vector<Particle> m_stlParticles;
@@ -116,6 +115,8 @@ class ParticleFilter
 
 		bool m_is_initialized {false};
 		std::default_random_engine m_generator;
+
+		std::array<Eigen::MatrixX3d, PARTICLE_COUNT> m_associations;
 };
 
 #endif /* PARTICLE_FILTER_H_ */
