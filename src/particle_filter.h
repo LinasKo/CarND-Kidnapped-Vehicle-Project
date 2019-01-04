@@ -22,18 +22,6 @@
 
 constexpr size_t PARTICLE_COUNT {100u};
 
-struct Particle
-{
-	double x;
-	double y;
-	double theta;
-	double weight;
-	std::vector<int> associations;
-	std::vector<double> sense_x;
-	std::vector<double> sense_y;
-};
-
-
 class ParticleFilter
 {
 	public:
@@ -91,9 +79,6 @@ class ParticleFilter
 		// Setting dynamic size even if number of particles are known, as the number is large and Eigen
 		// recommends using Dynamic sizes for sizes > 4.
 		Eigen::MatrixX4d m_particles;
-		
-		// Temporary, to not break the usual functions
-		std::vector<Particle> m_stlParticles;
 
 	private:
 		template <typename T>

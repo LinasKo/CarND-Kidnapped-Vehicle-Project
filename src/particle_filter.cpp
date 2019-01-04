@@ -148,59 +148,39 @@ void ParticleFilter::resample()
 	{
 		m_particles.col(3) /= totalWeight;
 	}
-
-	// Remap to standard particles, to not break stuff.
-	m_stlParticles.clear();
-	m_stlParticles.reserve(m_particles.rows());
-	for (auto i = 0; i < m_particles.rows(); ++i)
-	{
-		m_stlParticles.push_back(
-			{
-				m_particles(i, 0),
-				m_particles(i, 1),
-				m_particles(i, 2),
-				m_particles(i, 3)
-			}
-		);
-
-		Eigen::VectorXi idCol = m_associations[i].col(0).cast<int>();
-		Eigen::VectorXd xCol = m_associations[i].col(1);
-		Eigen::VectorXd yCol = m_associations[i].col(2);
-
-		m_stlParticles[i].associations = vector<int>(idCol.data(), idCol.data() + idCol.size());
-		m_stlParticles[i].sense_x = vector<double>(xCol.data(), xCol.data() + idCol.size());
-		m_stlParticles[i].sense_y = vector<double>(yCol.data(), yCol.data() + idCol.size());
-	}
 }
 
 string ParticleFilter::getAssociations(long index)
 {
-	vector<int> v = m_stlParticles[index].associations;
+	const Eigen::VectorXi& idVector = m_associations[index].col(0).cast<int>();
 	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+	ss << idVector;
+	string output = ss.str();
+	output.erase(remove(output.begin(), output.end(), ' '), output.end());
+	replace(output.begin(), output.end(), '\n', ' ');
+	return output;
 }
 
 string ParticleFilter::getSenseX(long index)
 {
-	vector<double> v = m_stlParticles[index].sense_x;
+	const Eigen::VectorXd& xVector = m_associations[index].col(1);
 	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+	ss << xVector;
+	string output = ss.str();
+	output.erase(remove(output.begin(), output.end(), ' '), output.end());
+	replace(output.begin(), output.end(), '\n', ' ');
+	return output;
 }
 
 string ParticleFilter::getSenseY(long index)
 {
-	vector<double> v = m_stlParticles[index].sense_y;
+	const Eigen::VectorXd& yVector = m_associations[index].col(2);
 	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+	ss << yVector;
+	string output = ss.str();
+	output.erase(remove(output.begin(), output.end(), ' '), output.end());
+	replace(output.begin(), output.end(), '\n', ' ');
+	return output;
 }
 
 template <typename T>

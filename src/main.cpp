@@ -117,7 +117,6 @@ int main() {
           Eigen::MatrixX4d::Index maxIndex;
           cout << "highest w " << particles.col(3).maxCoeff(&maxIndex) << endl;
           cout << "average w " << particles.col(3).mean() << endl;
-
           Eigen::Vector4d bestParticle = particles.row(maxIndex);
 
           json msgJson;
