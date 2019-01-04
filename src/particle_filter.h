@@ -15,12 +15,15 @@
 #include <utility>
 #include <vector>
 
+#include <Eigen/Dense>
+
 #include "helper_functions.h"
 
 
+constexpr size_t PARTICLE_COUNT {100u};
+
 struct Particle
 {
-	int id;
 	double x;
 	double y;
 	double theta;
@@ -85,7 +88,13 @@ class ParticleFilter
 			return m_is_initialized;
 		}
 
-		std::vector<Particle> m_particles;
+		// Setting dynamic size even if number of particles are known, as the number is large and Eigen
+		// recommends using Dynamic sizes for sizes > 4.
+		Eigen::MatrixX4d m_particles;
+		std::array<Eigen::MatrixX3d, PARTICLE_COUNT> m_associations;
+		
+		// Temporary, to not break the usual functions
+		std::vector<Particle> m_stlParticles;
 
 	private:
 		template <typename T>

@@ -13,6 +13,7 @@ file(GLOB HEADERS_HPP src/*.hpp)
 set(sources src/particle_filter.cpp src/main.cpp ${HEADERS} ${HEADERS_HPP})
 
 
+include_directories(./lib)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 

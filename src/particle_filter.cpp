@@ -20,24 +20,19 @@
 using namespace std;
 
 
-constexpr size_t PARTICLE_COUNT {100u};
 constexpr double INIT_WEIGHT {1.0};
 
 void ParticleFilter::init(double x, double y, double theta, array<double, 3> std)
 {
-	m_particles.reserve(PARTICLE_COUNT);
-	for (size_t i = 0; i < PARTICLE_COUNT; ++i)
+	m_particles = Eigen::MatrixX4d(PARTICLE_COUNT, 4);
+
+	for (auto i = 0; i < m_particles.rows(); ++i)
 	{
-		m_particles.push_back({
-			static_cast<int>(i),
+		m_particles.row(i) <<
 			drawFromNormal(x, std[0]),
 			drawFromNormal(y, std[1]),
 			fmod(drawFromNormal(theta, std[2]), 2 * M_PI),
-			INIT_WEIGHT,
-			{},
-			{},
-			{}
-		});
+			INIT_WEIGHT;
 	}
 
 	m_is_initialized = true;
@@ -47,24 +42,50 @@ void ParticleFilter::prediction(double delta_t, array<double, 3> std_pos, double
 {
 	if (yaw_rate == 0)
 	{
-		for_each(m_particles.begin(), m_particles.end(), [=](Particle& part)
-		{
-			part.x += drawFromNormal(velocity * delta_t * cos(part.theta), std_pos[0]);
-			part.y += drawFromNormal(velocity * delta_t * sin(part.theta), std_pos[1]);
-			// Yaw (theta) remains the same
-		});
+		Eigen::VectorXd thetas = m_particles.col(2);
+		
+		Eigen::VectorXd delta_x = velocity * delta_t * thetas.array().cos();
+		Eigen::VectorXd delta_y = velocity * delta_t * thetas.array().sin();
+
+		m_particles.col(0) += delta_x.unaryExpr(
+			[this, &std_pos](const double& x) {
+				return drawFromNormal(x, std_pos[0]);
+			});
+
+		m_particles.col(1) += delta_y.unaryExpr(
+			[this, &std_pos](const double& y) {
+				return drawFromNormal(y, std_pos[1]);
+			});
+
+		// Yaw (theta) remains the same
 	}
 	else
 	{
-		for_each(m_particles.begin(), m_particles.end(), [=](Particle& part)
-		{
-			part.x += drawFromNormal(velocity / yaw_rate * (sin(part.theta + yaw_rate * delta_t) - sin(part.theta)), std_pos[0]);
-			part.y += drawFromNormal(-velocity / yaw_rate * (cos(part.theta + yaw_rate * delta_t) - cos(part.theta)), std_pos[1]);
-			part.theta += drawFromNormal(yaw_rate * delta_t, std_pos[2]);
-			part.theta = fmod(part.theta, 2 * M_PI);
-		});
-	}
+		Eigen::VectorXd thetas = m_particles.col(2);
+		
+		Eigen::VectorXd delta_x =   velocity / yaw_rate * ((thetas.array() + yaw_rate * delta_t).sin() - thetas.array().sin());
+		Eigen::VectorXd delta_y = - velocity / yaw_rate * ((thetas.array() + yaw_rate * delta_t).cos() - thetas.array().cos());
+		Eigen::VectorXd delta_theta = Eigen::VectorXd::Constant(m_particles.rows(), yaw_rate * delta_t);
 
+		m_particles.col(0) += delta_x.unaryExpr(
+			[this, &std_pos](const double& x) {
+				return drawFromNormal(x, std_pos[0]);
+			});
+
+		m_particles.col(1) += delta_y.unaryExpr(
+			[this, &std_pos](const double& y) {
+				return drawFromNormal(y, std_pos[1]);
+			});
+
+		m_particles.col(2) += delta_theta.unaryExpr(
+			[this, &std_pos](const double& theta) {
+				return drawFromNormal(theta, std_pos[2]);
+			});
+		m_particles.col(2) = m_particles.col(2).unaryExpr(
+			[this, &std_pos](const double& theta) {
+				return fmod(theta, 2 * M_PI);
+			});
+	}
 }
 
 void ParticleFilter::updateWeights(double sensor_range, array<double, 2> std_landmark, const std::vector<LandmarkObs>& observations, const Map& map_landmarks)
@@ -74,16 +95,17 @@ void ParticleFilter::updateWeights(double sensor_range, array<double, 2> std_lan
 		return;
 	}
 
-	for (auto& part : m_particles)
+	for (auto i = 0; i < m_particles.rows(); ++i)
 	{
-		part.associations.clear();
-		part.sense_x.clear();
-		part.sense_y.clear();
+		Eigen::RowVector4d particle = m_particles.row(i);
+		m_associations[i] = Eigen::MatrixX3d(observations.size(), 3);
 
-		for (const auto& obs : observations)
+		for (size_t j = 0; j < observations.size(); ++j)
 		{
+			const auto& obs = observations[j];
+
 			double xObsMap, yObsMap;
-			tie(xObsMap, yObsMap) = vehicleToMapCoord(part.x, part.y, part.theta, obs.x, obs.y);
+			tie(xObsMap, yObsMap) = vehicleToMapCoord(particle[0], particle[1], particle[2], obs.x, obs.y);
 
 			// I can account for sensor range here if more speed is needed.
 			const auto& closestLandmark = *min_element(map_landmarks.landmark_list.begin(), map_landmarks.landmark_list.end(),
@@ -92,44 +114,63 @@ void ParticleFilter::updateWeights(double sensor_range, array<double, 2> std_lan
 				return dist(xObsMap, yObsMap, landmark1.x_f, landmark1.y_f) < dist(xObsMap, yObsMap, landmark2.x_f, landmark2.y_f);
 			});
 
-			part.associations.push_back(closestLandmark.id_i);
-			part.sense_x.push_back(closestLandmark.x_f);
-			part.sense_y.push_back(closestLandmark.y_f);
+			m_associations[i].row(j) << closestLandmark.id_i, closestLandmark.x_f, closestLandmark.y_f;
 
-			part.weight *= multivariateGaussian(xObsMap, yObsMap, closestLandmark.x_f, closestLandmark.y_f, std_landmark[0], std_landmark[1]);;
+			particle(3) *= multivariateGaussian(xObsMap, yObsMap, closestLandmark.x_f, closestLandmark.y_f, std_landmark[0], std_landmark[1]);
 		}
+
+		m_particles.row(i) = particle;
 	}
 }
 
 void ParticleFilter::resample()
 {
 	// Collect weights
-	vector<double> weights;
-	weights.reserve(m_particles.size());
-	transform(m_particles.begin(), m_particles.end(), back_inserter(weights), [](const Particle& part){
-		return part.weight;
-	});
+	Eigen::VectorXd weights = m_particles.col(3);
+	std::vector<double> weights_vector(weights.data(), weights.data() + weights.size());
 
 	// Resample
-	discrete_distribution<int> distribution {weights.begin(), weights.end()};
+	discrete_distribution<int> distribution {weights_vector.begin(), weights_vector.end()};
 	
-	std::vector<Particle> newParticles;
-	newParticles.reserve(m_particles.size());
-	for (size_t i = 0; i < m_particles.size(); ++i)
+	auto oldParticles = m_particles;
+	for (auto i = 0; i < m_particles.rows(); ++i)
 	{
-		newParticles.push_back(
-			m_particles[distribution(m_generator)]
-		);
+		m_particles.row(i) = oldParticles.row(distribution(m_generator));
 	}
-	m_particles = newParticles;
 
 	// Normalize
-	auto totalWeight = accumulate(m_particles.begin(), m_particles.end(), 0.0, [](double base, const Particle& part){
-		return base + part.weight;
-	});
-	for_each(m_particles.begin(), m_particles.end(), [totalWeight](Particle& part){
-		part.weight /= totalWeight;
-	});
+	double totalWeight = m_particles.col(3).sum();
+	if (totalWeight == 0)
+	{
+		m_particles.col(3).array() += INIT_WEIGHT;
+	}
+	else
+	{
+		m_particles.col(3) /= totalWeight;
+	}
+
+	// Remap to standard particles, to not break stuff.
+	m_stlParticles.clear();
+	m_stlParticles.reserve(m_particles.rows());
+	for (auto i = 0; i < m_particles.rows(); ++i)
+	{
+		m_stlParticles.push_back(
+			{
+				m_particles(i, 0),
+				m_particles(i, 1),
+				m_particles(i, 2),
+				m_particles(i, 3)
+			}
+		);
+
+		Eigen::VectorXi idCol = m_associations[i].col(0).cast<int>();
+		Eigen::VectorXd xCol = m_associations[i].col(1);
+		Eigen::VectorXd yCol = m_associations[i].col(2);
+
+		m_stlParticles[i].associations = vector<int>(idCol.data(), idCol.data() + idCol.size());
+		m_stlParticles[i].sense_x = vector<double>(xCol.data(), xCol.data() + idCol.size());
+		m_stlParticles[i].sense_y = vector<double>(yCol.data(), yCol.data() + idCol.size());
+	}
 }
 
 string ParticleFilter::getAssociations(Particle best)
